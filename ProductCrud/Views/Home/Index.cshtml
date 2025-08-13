@@ -1,0 +1,232 @@
+﻿@* @{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome oli</h1>
+    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+</div> *@
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#AddProductModal" onclick="OpenAddModal()" data-bs-whatever="mdo">Product Add</button>
+
+<div class="modal fade" id="AddProductModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">New message</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="ProductForm">
+                    <input type="hidden" id="productId"/>
+                    <div class="mb-3">
+                        <label for="product-name" class="col-form-label">Product Name:</label>
+                        <input type="text" class="form-control" id="product-name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="address" class="col-form-label">Address:</label>
+                        <input type="text" class="form-control" id="address">
+                    </div>
+                    <div class="form-group">
+                        <label for="country">Country</label>
+                        <select class="form-control" id="country">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="state">State</label>
+                        <select class="form-control" id="state">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="city">City</label>
+                        <select class="form-control" id="city">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="productdocument">Product Document</label>
+                        <input type="file" class="form-control-file" id="productdocument">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" id="saveProductBtn">Save</button>
+                    </div>
+                </form>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+@* Table start *@
+
+<table class="table">
+    <thead class="thead-dark">
+        <tr>
+            <th scope="col">Sl No</th>
+            <th scope="col">Name</th>
+            <th scope="col">Country</th>
+            <th scope="col">State</th>
+            <th scope="col">City</th>
+            <th scope="col">Product Document</th>
+            <th scope="col">Action</th>
+        </tr>
+    </thead>
+    <tbody id="ProductTableBody"></tbody>
+</table>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    const countryStates = {
+        "USA": ["California", "Texas", "Florida"],
+        "Canada": ["Ontario", "Quebec", "British Columbia"],
+        "India": ["Maharashtra", "Karnataka", "Tamil Nadu"],
+        "Australia": ["New South Wales", "Victoria", "Queensland"]
+    };
+
+    const stateCities = {
+        "California": ["Los Angeles", "San Francisco", "San Diego"],
+        "Texas": ["Houston", "Dallas", "Austin"],
+        "Florida": ["Miami", "Orlando", "Tampa"],
+        "Ontario": ["Toronto", "Ottawa", "Hamilton"],
+        "Quebec": ["Montreal", "Quebec City", "Laval"],
+        "British Columbia": ["Vancouver", "Victoria", "Kelowna"],
+        "Maharashtra": ["Mumbai", "Pune", "Nagpur"],
+        "Karnataka": ["Bangalore", "Mysore", "Mangalore"],
+        "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai"],
+        "New South Wales": ["Sydney", "Newcastle", "Wollongong"],
+        "Victoria": ["Melbourne", "Geelong", "Ballarat"],
+        "Queensland": ["Brisbane", "Gold Coast", "Cairns"]
+    };
+
+    $(document).ready(function () {
+        loadCountries();
+        loadProducts();
+
+        $('#country').on('change', function () {
+            const selectedCountry = $(this).val();
+            loadStates(selectedCountry);
+            $('#city').empty(); 
+        });
+
+        $('#state').on('change', function () {
+            const selectedState = $(this).val();
+            loadCities(selectedState);
+        });
+    });
+
+    function loadCountries() {
+        const countrySelect = $('#country');
+        countrySelect.empty().append(`<option value="">Select Country</option>`);
+        $.each(countryStates, function (country, states) {
+            countrySelect.append($('<option></option>').val(country).text(country));
+        });
+    }
+
+    function loadStates(country) {
+        const stateSelect = $('#state');
+        stateSelect.empty().append(`<option value="">Select State</option>`);
+        if (country && countryStates[country]) {
+            $.each(countryStates[country], function (index, state) {
+                stateSelect.append($('<option></option>').val(state).text(state));
+            });
+        }
+    }
+
+    function loadCities(state) {
+        const citySelect = $('#city');
+        citySelect.empty().append(`<option value="">Select City</option>`);
+        if (state && stateCities[state]) {
+            $.each(stateCities[state], function (index, city) {
+                citySelect.append($('<option></option>').val(city).text(city));
+            });
+        }
+    }
+    function loadProducts(){
+        $.ajax({
+            url: '/api/products', 
+            type: 'GET',
+            success: function (data) {
+                const tableBody = $('#ProductTableBody');
+                tableBody.empty();
+                $.each(data, function (index, product) {
+                    tableBody.append(`
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${product.name}</td>
+                            <td>${product.country}</td>
+                            <td>${product.state}</td>
+                            <td>${product.city}</td>
+                            <td><a href="${product.documentUrl}" target="_blank">View Document</a></td>
+                            <td>
+                                <button class="btn btn-danger" onclick="deleteProduct(${product.id})">Delete</button>
+                            </td>
+                        </tr>
+                    `);
+                });
+            },
+            error: function (error) {
+                console.error('Error loading products:', error);
+            }
+        });
+    }
+    function OpenEditModal(productId){
+        $.ajax({
+            url: `/api/products/${productId}`,
+            type: 'GET',
+            success: function (product) {
+                $('#productId').val(product.id);
+                $('#product-name').val(product.name);
+                $('#address').val(product.address);
+                $('#country').val(product.country);
+                loadStates(product.country);
+                $('#state').val(product.state);
+                loadCities(product.state);
+                $('#city').val(product.city);
+                $('#AddProductModal').modal('show');
+            },
+            error: function (error) {
+                console.error('Error loading product:', error);
+            }
+        });
+    }
+    function OpenAddModal() {
+        $('#AddProductModal').modal('show');
+    }
+    $('#ProductForm').on('submit', function (e) {
+        console.log('click');
+        e.preventDefault();
+        const productId = $('#productId').val();
+        const productName = $('#product-name').val();
+        const address = $('#address').val();
+        const country = $('#country').val();
+        const state = $('#state').val();
+        const city = $('#city').val();
+        const ProductionDocuments = $('#productdocument')[0].files[0];
+        if (!productName || !address || !country || !state || !city || !ProductionDocuments) {
+            alert('Please fill all fields');
+            return;
+        }
+        const formData = new FormData();
+        // formData.append('id', productId);
+        formData.append('ProductName', productName);
+        formData.append('address', address);
+        formData.append('country', country);
+        formData.append('state', state);
+        formData.append('city', city);
+        formData.append('ProductionDocuments', ProductionDocuments);
+        $.ajax({
+            url: '/api/products',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function () {
+                $('#AddProductModal').modal('hide');
+                loadProducts();
+                $('#ProductForm')[0].reset();
+            },
+            error: function (error) {
+                console.error('Error saving product:', error);
+            }
+        });
+    });
+</script>
